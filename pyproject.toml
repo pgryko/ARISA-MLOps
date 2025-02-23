@@ -1,0 +1,25 @@
+[project]
+name = "arisa-mlops"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11.9"
+dependencies = [
+    "catboost>=1.2.7",
+    "dotenv>=0.9.9",
+    "flake8>=7.1.2",
+    "has>=0.0.4",
+    "ipywidgets>=8.1.5",
+    "jupyterlab-rise>=0.43.1",
+    "kaggle>=1.6.17",
+    "kaleido==0.2.1",
+    "loguru>=0.7.3",
+    "matplotlib>=3.10.0",
+    "nbformat>=5.10.4",
+    "optuna>=4.2.1",
+    "pandas>=2.2.3",
+    "plotly>=6.0.0",
+    "ruff>=0.9.7",
+    "scikit-learn>=1.6.1",
+    "shap>=0.46.0",
+]
