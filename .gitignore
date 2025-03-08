@@ -4,3 +4,6 @@ catboost_info
 data
 kaggle.json
 .venv
+__pycache__
+*.pyc
+.idea
