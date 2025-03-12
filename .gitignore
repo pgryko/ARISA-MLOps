@@ -1,9 +1,10 @@
 .vscode
 catboost_info
 .ipynb_checkpoints
-data
 kaggle.json
 .venv
 __pycache__
 *.pyc
 .idea
+mlruns
+mlartifacts
