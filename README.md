@@ -1,27 +1,36 @@
 # ARISA-MLOps
 
-Formative Assignment Lesson 3+4: Reproducible ML
-Due March 29, 2025 11:59 PM
-Instructions
-Remember to ask in chat, either to teachers or other students if you get stuck, or even ChatGPT!
-Remember that lessons are recorded and transcribed, so that you can review the topics covered by the lessons.
+# Formative Assignment: Reproducible ML (Lessons 3+4)
 
-Assignment Title: Formative Assignment Lesson 3+4: Reproducible ML
-Assignment Overview:
-You will be replicating state of our MLOps system reached as the end of lesson 04.
-Steps to Complete the Assignment:
-Fork the current state of https://github.com/clausagerskov/ARISA-MLOps, or create a new public repository and copy paste the code from the main branch into your repo.
-Follow the instructions under Sessions 03 and 04 in the repo README.md to get two pipelines up and running, one for retraining when committing a change in the train data or code, and one to produced predictions.
-Make sure you have a couple of successful runs of each of the two pipelines in your repository.
-Answer the questions in the Reflective Questions list.
-Submit a link to your repository along with your answers.
-Reflective Question:
-Why is MLFlow useful?
-What is the purpose of having automated pipelines in ML production environment? Why can't the data scientist not just run notebooks to train models and produce predictions.
-What is the difference between A/B testing, Green Blue deployments, Canary deployments and Challenger Champion deployments?
-Why are we hosting artifacts in AWS S3 and metadata in RDS?
-What are some security concerns and challenges involved with using secrets and API keys to authenticate our github actions workflow instance?
-What was the biggest challenge for you in completing the assignment?
+**Due Date:** March 29, 2025 11:59 PM
+
+## Instructions
+- Remember to ask in chat (teachers, other students, or ChatGPT) if you get stuck!
+- Lessons are recorded and transcribed for your reference to review covered topics
+
+## Assignment Overview
+You will replicate the state of our MLOps system reached at the end of lesson 04.
+
+## Steps to Complete
+1. Fork the current state of https://github.com/clausagerskov/ARISA-MLOps, or create a new public repository and copy the code from the main branch
+2. Follow the instructions under Sessions 03 and 04 in the repo README.md to set up:
+   - Pipeline for retraining when train data/code changes
+   - Pipeline for producing predictions
+3. Ensure you have multiple successful runs of both pipelines in your repository
+4. Answer the reflective questions below
+5. Submit your repository link along with answers
+
+## Reflective Questions
+1. Why is MLFlow useful?
+2. What is the purpose of having automated pipelines in ML production environments? Why can't data scientists simply run notebooks for training and predictions?
+3. What are the differences between:
+   - A/B testing
+   - Green/Blue deployments  
+   - Canary deployments
+   - Challenger/Champion deployments
+4. Why do we host artifacts in AWS S3 and metadata in RDS?
+5. What security concerns and challenges arise when using secrets and API keys to authenticate GitHub Actions workflows?
+6. What was your biggest challenge in completing this assignment?
 
 
 ## Sessions 01 and 02
