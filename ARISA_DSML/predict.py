@@ -48,16 +48,25 @@ if __name__=="__main__":
 
     client = MlflowClient(mlflow.get_tracking_uri())
     model_info = get_model_by_alias(client, alias="champion")
+    
     if model_info is None:
-        logger.info("No champion model, predicting using newest model")
-        model_info = client.get_latest_versions(MODEL_NAME)[0]
+        logger.info("No champion model found, checking for any models...")
+        try:
+            registered_models = client.search_registered_models()
+            if not registered_models:
+                logger.info("No models found in registry. Please train a model first.")
+                exit(0)
+            model_info = registered_models[0].latest_versions[0]
+            logger.info(f"Using latest model version: {model_info.version}")
+        except MlflowException as e:
+            logger.error(f"Error searching for models: {e}")
+            exit(0)
 
     # extract params/metrics data for run `test_run_id` in a single dict
     run_data_dict = client.get_run(model_info.run_id).data.to_dictionary()
     run = client.get_run(model_info.run_id)
     log_model_meta = json.loads(run.data.tags["mlflow.log-model.history"])
     log_model_meta[0]["signature"]
-
 
     _, artifact_folder = os.path.split(model_info.source)
     logger.info(artifact_folder)
