@@ -30,6 +30,12 @@ lint:
 all:
 	requirements clean lint
 
+## Download data from Kaggle
+.PHONY: download
+download:
+	python -m ARISA_DSML.preproc
+
+
 .PHONY: preprocess
 preprocess:
 	python -m ARISA_DSML.preproc

@@ -32,14 +32,14 @@ jobs:
       - name: Install dependencies
         run: make requirements
           
-      - name: Download data
+      - name: Download and preprocess data
         env:
           KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
         run: |
           mkdir -p $HOME/.config/kaggle
           echo "$KAGGLE_KEY" > $HOME/.config/kaggle/kaggle.json
           chmod 600 $HOME/.config/kaggle/kaggle.json
-          make download
+          make preprocess
         
       - name: Resolve and predict
         run: |
