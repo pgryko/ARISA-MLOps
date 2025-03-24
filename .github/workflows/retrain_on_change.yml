@@ -159,7 +159,7 @@ jobs:
               --head $BRANCH_NAME)
               
             # Add PR validation check
-            gh pr check $BRANCH_NAME
+            gh pr checks $BRANCH_NAME
             
             # Enable auto-merge if checks pass
             gh pr merge $BRANCH_NAME --auto --merge
