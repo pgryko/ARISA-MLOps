@@ -126,7 +126,7 @@ jobs:
             sleep 5
           done
           exit 1
-          
+
       - name: Create Pull Request
         if: success()
         env:
@@ -158,11 +158,12 @@ jobs:
               --base main \
               --head $BRANCH_NAME)
             
-            # Enable auto-merge and merge immediately since this is an automated PR
-            gh pr merge $BRANCH_NAME --auto --merge --delete-branch
+            # Merge PR immediately
+            gh pr merge $BRANCH_NAME --merge --delete-branch
           else
             echo "No changes to commit"
           fi
+
           
       - name: Trigger Predict Workflow
         if: success()
