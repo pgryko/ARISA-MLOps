@@ -1,17 +1,24 @@
 """Run prediction on test data."""
-from pathlib import Path
-from catboost import CatBoostClassifier
-import matplotlib.pyplot as plt
-import pandas as pd
-from loguru import logger
-import shap
-import joblib
+import json
 import os
-from ARISA_DSML.config import FIGURES_DIR, MODELS_DIR, target, PROCESSED_DATA_DIR, categorical, MODEL_NAME
-from ARISA_DSML.resolve import get_model_by_alias
+from pathlib import Path
+
+from catboost import CatBoostClassifier
+from loguru import logger
+import matplotlib.pyplot as plt
 import mlflow
 from mlflow.client import MlflowClient
-import json
+import pandas as pd
+import shap
+
+from ARISA_DSML.config import (
+    FIGURES_DIR,
+    MODEL_NAME,
+    MODELS_DIR,
+    PROCESSED_DATA_DIR,
+    target,
+)
+from ARISA_DSML.resolve import get_model_by_alias
 
 
 def plot_shap(model:CatBoostClassifier, df_plot:pd.DataFrame)->None:
@@ -48,18 +55,18 @@ if __name__=="__main__":
     # extract params/metrics data for run `test_run_id` in a single dict
     run_data_dict = client.get_run(model_info.run_id).data.to_dictionary()
     run = client.get_run(model_info.run_id)
-    log_model_meta = json.loads(run.data.tags['mlflow.log-model.history'])
-    log_model_meta[0]['signature']
+    log_model_meta = json.loads(run.data.tags["mlflow.log-model.history"])
+    log_model_meta[0]["signature"]
 
 
     _, artifact_folder = os.path.split(model_info.source)
     logger.info(artifact_folder)
-    model_uri = "runs:/{}/{}".format(model_info.run_id, artifact_folder)
+    model_uri = f"runs:/{model_info.run_id}/{artifact_folder}"
     logger.info(model_uri)
     loaded_model = mlflow.catboost.load_model(model_uri)
 
     params = run_data_dict["params"]
-    params["feature_columns"] = [inp["name"] for inp in json.loads(log_model_meta[0]['signature']['inputs'])]
+    params["feature_columns"] = [inp["name"] for inp in json.loads(log_model_meta[0]["signature"]["inputs"])]
     preds_path = predict(loaded_model, df_test, params)
 
 

@@ -2,8 +2,8 @@
 	"name": "ARISA-MLOps-devcontainer",
 	"image": "mcr.microsoft.com/devcontainers/python:3.11-bullseye",
 
-	"postCreateCommand": "pip install --no-cache-dir mlflow==2.12.1 psycopg2 boto3",
-	"postStartCommand": "mlflow ui --backend-store-uri postgresql://${MLFLOWDBUSERNAME}:${MLFLOWDBPASS}@${MLFLOWDBENDPOINT}:${MLFLOWDBPORT}/${MLFLOWDB} --default-artifact-root s3://${ARTIFACT_BUCKET}/models --host 0.0.0.0 --port 5000",
+    "postCreateCommand": "pip install --no-cache-dir mlflow==2.12.1",
+    "postStartCommand": "mlflow ui --backend-store-uri sqlite:///.mlflow/db/mlflow.db --default-artifact-root ./.mlflow/artifacts --host 0.0.0.0 --port 5000",
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
 	"forwardPorts": [5000, 8080],
 

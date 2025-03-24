@@ -8,3 +8,8 @@ __pycache__
 .idea
 mlruns
 mlartifacts
+
+# Exclude SQLite database file
+.mlflow/db/*.db
+# But keep the directory
+!.mlflow/db/.gitkeep

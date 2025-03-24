@@ -22,6 +22,8 @@ from ARISA_DSML.config import (
 )
 from ARISA_DSML.helpers import get_git_commit_hash
 
+# Set tracking URI
+mlflow.set_tracking_uri("sqlite:///.mlflow/db/mlflow.db")
 
 # comment to trigger workflow ver4
 
