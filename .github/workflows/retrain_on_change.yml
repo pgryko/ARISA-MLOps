@@ -151,13 +151,12 @@ jobs:
             git commit -m "Update ML artifacts [skip ci]"
             git push origin $BRANCH_NAME
             
-            # Create PR using GitHub CLI
+            # Create PR using GitHub CLI without label
             pr_url=$(gh pr create \
               --title "Update ML artifacts [Automated]" \
               --body "Automated PR to update ML artifacts from training workflow" \
               --base main \
-              --head $BRANCH_NAME \
-              --label "model-update")
+              --head $BRANCH_NAME)
               
             # Add PR validation check
             gh pr check $BRANCH_NAME
