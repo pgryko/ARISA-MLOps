@@ -1,6 +1,8 @@
 name: Predict on new data or with new model
 
 on:
+  repository_dispatch:
+    types: [trigger-predict]
   push:
     branches:
       - main
