@@ -41,12 +41,38 @@ jobs:
         run: |
           mkdir -p .mlflow/db
           mkdir -p .mlflow/artifacts
+          
+      - name: Set MLflow tracking URI
+        run: |
+          echo "MLFLOW_TRACKING_URI=sqlite:///.mlflow/db/mlflow.db" >> $GITHUB_ENV
+          echo "MLFLOW_ARTIFACT_ROOT=./.mlflow/artifacts" >> $GITHUB_ENV
         
       - name: Resolve and predict
-        continue-on-error: true
         run: |
-          make resolve
-          make predict
+          # For debugging
+          echo "Checking MLflow connection..."
+          mlflow --version
+          mlflow experiments list || echo "Failed to list experiments"
+          
+          make resolve || {
+            echo "Resolve failed but continuing..."
+            exit_code=$?
+            if [ $exit_code -ne 0 ]; then
+              echo "No existing model found, skipping resolve"
+            fi
+          }
+          
+          make predict || {
+            echo "Predict failed"
+            exit 1
+          }
+          
+      - name: Upload predictions
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: predictions
+          path: models/preds.csv
 
 # name: Predict on new data or with new model
 
