@@ -7,11 +7,11 @@ on:
     paths:  
       - 'data/raw/train.csv'
       - 'data/processed/train.csv'
-      - 'ARISA_DSML/preproc.py'
-      - 'ARISA_DSML/train.py'
-      - 'ARISA_DSML/data_prep.py'
+      - 'ARISA_DSML/**/*.py'
       - 'models/best_params.pkl'
+      - '.github/workflows/retrain_on_change.yml'
   workflow_dispatch:
+
 jobs:
   preprocess:
     runs-on: ubuntu-latest
@@ -48,32 +48,54 @@ jobs:
     steps: 
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all history for all branches and tags
+          
       - name: Download processed data
         uses: actions/download-artifact@v4
         with:
           name: processed-data
           path: data/processed
+          
       - name: Set up Python
         uses: actions/setup-python@v4
         with: 
           python-version: "3.11"
+          
       - name: Install dependencies
         run: make requirements
+        
       - name: Setup MLflow
         run: |
           mkdir -p .mlflow/db
           mkdir -p .mlflow/artifacts
+          
       - name: Run training
         run: make train
+        
       - name: Commit MLflow artifacts
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git add .mlflow/artifacts
-          git add .mlflow/db
-          git commit -m "Update ML artifacts" || echo "No changes to commit"
-          git push
+          
+          # Add all changed files
+          git add .mlflow/artifacts/
+          git add .mlflow/db/
+          git add models/
+          git add reports/figures/
+          git add data/processed/
+          
+          # Create commit with changes
+          git commit -m "Update ML artifacts [skip ci]" || echo "No changes to commit"
+          
+          # Pull any changes from remote
+          git pull --rebase origin main
+          
+          # Push changes
+          git push origin main
+        
       - name: Trigger Predict Workflow
+        if: success()
         run: |
           curl -X POST -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
           -H "Accept: application/vnd.github.v3+json" \
