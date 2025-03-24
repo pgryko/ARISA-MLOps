@@ -12,19 +12,30 @@ on:
       - '.github/workflows/retrain_on_change.yml'
   workflow_dispatch:
 
-jobs:
+# Prevent multiple workflow runs from conflicting
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
+jobs:
   preprocess:
     runs-on: ubuntu-latest
+    timeout-minutes: 30  # Add timeout to prevent hung jobs
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        
       - name: Set up Python
         uses: actions/setup-python@v4
         with: 
           python-version: "3.11"
+          cache: 'pip'  # Cache pip dependencies
+          
       - name: Install dependencies
-        run: make requirements
+        run: |
+          python -m pip install --upgrade pip
+          make requirements
+        
       - name: Create kaggle directory
         env: 
           KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
@@ -32,26 +43,55 @@ jobs:
           mkdir -p $HOME/.config/kaggle
           echo "$KAGGLE_KEY" > $HOME/.config/kaggle/kaggle.json
           chmod 600 $HOME/.config/kaggle/kaggle.json
+          
       - name: Run preprocessing
-        run: make preprocess
+        id: preprocess
+        continue-on-error: true
+        run: |
+          for i in {1..3}; do
+            if make preprocess; then
+              exit 0
+            fi
+            echo "Attempt $i failed, retrying..."
+            sleep 5
+          done
+          exit 1
+          
       - name: Upload preprocessed data
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: processed-data
           path: data/processed
-  
+          retention-days: 1  # Only keep for duration needed
+          
+      - name: Notify on preprocessing failure
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: 'Preprocessing failed in retraining workflow',
+              body: `Workflow run: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`
+            })
+
   train:
-    runs-on: ubuntu-latest
     needs: preprocess
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
     permissions:
       contents: write
       pull-requests: write
+      issues: write
+    
     steps: 
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
+          
       - name: Download processed data
         uses: actions/download-artifact@v4
         with:
@@ -62,36 +102,41 @@ jobs:
         uses: actions/setup-python@v4
         with: 
           python-version: "3.11"
-
-      - name: Install GitHub CLI
-        run: |
-          type -p curl >/dev/null || (sudo apt update && sudo apt install curl -y)
-          curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg \
-          && sudo chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg \
-          && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
-          && sudo apt update \
-          && sudo apt install gh -y
+          cache: 'pip'
           
       - name: Install dependencies
-        run: make requirements
-        
+        run: |
+          python -m pip install --upgrade pip
+          make requirements
+          
       - name: Setup MLflow
         run: |
           mkdir -p .mlflow/db
           mkdir -p .mlflow/artifacts
           
       - name: Run training
-        run: make train
-        
+        id: train
+        continue-on-error: true
+        run: |
+          for i in {1..3}; do
+            if make train; then
+              exit 0
+            fi
+            echo "Attempt $i failed, retrying..."
+            sleep 5
+          done
+          exit 1
+
       - name: Create Pull Request
+        if: success()
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Create a new branch
+          # Configure git
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           
-          # Create new branch with timestamp
+          # Create branch with timestamp
           BRANCH_NAME="model-update-$(date +%Y%m%d-%H%M%S)"
           git checkout -b $BRANCH_NAME
           
@@ -102,34 +147,48 @@ jobs:
           git add reports/figures/
           git add data/processed/
           
-          git commit -m "Update ML artifacts [skip ci]" || echo "No changes to commit"
-          
-          # Push new branch
-          git push origin $BRANCH_NAME
-          
-          # Create PR using GitHub CLI
-          gh pr create \
-            --title "Update ML artifacts [Automated]" \
-            --body "Automated PR to update ML artifacts from training workflow" \
-            --base main \
-            --head $BRANCH_NAME \
-            --label "automated-pr" \
-            --label "model-update"
+          if ! git diff --cached --quiet; then
+            git commit -m "Update ML artifacts [skip ci]"
+            git push origin $BRANCH_NAME
             
-      - name: Auto-merge Pull Request
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          # Get the PR number from the previous step
-          PR_NUMBER=$(gh pr list --head $BRANCH_NAME --json number -q '.[0].number')
+            # Create PR using GitHub CLI
+            pr_url=$(gh pr create \
+              --title "Update ML artifacts [Automated]" \
+              --body "Automated PR to update ML artifacts from training workflow" \
+              --base main \
+              --head $BRANCH_NAME \
+              --label "model-update")
+              
+            # Add PR validation check
+            gh pr check $BRANCH_NAME
+            
+            # Enable auto-merge if checks pass
+            gh pr merge $BRANCH_NAME --auto --merge
+          else
+            echo "No changes to commit"
+          fi
           
-          # Enable auto-merge
-          gh pr merge $PR_NUMBER --auto --merge
-        
       - name: Trigger Predict Workflow
         if: success()
-        run: |
-          curl -X POST -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-          -H "Accept: application/vnd.github.v3+json" \
-          https://api.github.com/repos/${{ github.repository }}/actions/workflows/predict_on_model_change.yml/dispatches \
-          -d '{"ref":"main"}'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'predict_on_model_change.yml',
+              ref: 'main'
+            })
+
+      - name: Notify on training failure
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: 'Training failed in retraining workflow',
+              body: `Workflow run: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`
+            })
