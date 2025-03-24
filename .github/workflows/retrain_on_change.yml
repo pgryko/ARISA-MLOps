@@ -11,7 +11,7 @@ on:
       - 'ARISA_DSML/train.py'
       - 'ARISA_DSML/data_prep.py'
       - 'models/best_params.pkl'
-
+  workflow_dispatch:
 jobs:
   preprocess:
     runs-on: ubuntu-latest

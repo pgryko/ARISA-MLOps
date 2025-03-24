@@ -11,6 +11,8 @@ name: Predict on new data or with new model
 #       - 'models/catboost_model_titanic.cbm'
 on:
   push:
+    branches:
+      - main
     paths:
       - '.mlflow/artifacts/**'
       - '.mlflow/db/**'
