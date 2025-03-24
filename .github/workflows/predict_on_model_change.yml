@@ -1,14 +1,5 @@
 name: Predict on new data or with new model
 
-# on: 
-#   push:
-#     branches:
-#       - main
-#     paths:  # predict when the test set has changed, as well as when the model artifact is updated
-#       - 'data/raw/test.csv'
-#       - 'data/processed/test.csv'
-#       - 'ARISA_DSML/predict.py'
-#       - 'models/catboost_model_titanic.cbm'
 on:
   push:
     branches:
@@ -16,6 +7,9 @@ on:
     paths:
       - '.mlflow/artifacts/**'
       - '.mlflow/db/**'
+      - 'ARISA_DSML/predict.py'
+      - 'ARISA_DSML/resolve.py'
+      - '.github/workflows/predict_on_model_change.yml'
   workflow_dispatch:
 
 jobs:
@@ -41,10 +35,28 @@ jobs:
           chmod 600 $HOME/.config/kaggle/kaggle.json
           make preprocess
         
+      - name: Setup MLflow
+        run: |
+          mkdir -p .mlflow/db
+          mkdir -p .mlflow/artifacts
+        
       - name: Resolve and predict
+        continue-on-error: true
         run: |
           make resolve
           make predict
+
+# name: Predict on new data or with new model
+
+# on: 
+#   push:
+#     branches:
+#       - main
+#     paths:  # predict when the test set has changed, as well as when the model artifact is updated
+#       - 'data/raw/test.csv'
+#       - 'data/processed/test.csv'
+#       - 'ARISA_DSML/predict.py'
+#       - 'models/catboost_model_titanic.cbm'
 # jobs:
 #   preprocess:
 #     runs-on: ubuntu-latest

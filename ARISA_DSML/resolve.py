@@ -1,6 +1,7 @@
 from loguru import logger
 import mlflow
 from mlflow.client import MlflowClient
+from mlflow.exceptions import MlflowException
 
 from ARISA_DSML.config import (
     MODEL_NAME,
@@ -8,13 +9,28 @@ from ARISA_DSML.config import (
 
 
 def get_model_by_alias(client, model_name:str=MODEL_NAME, alias:str="champion"):
+    """Get model version by alias, handling the case where model doesn't exist."""
     try:
-        alias_mv = client.get_model_version_by_alias(model_name, alias)
+        # First check if the registered model exists
+        try:
+            client.get_registered_model(model_name)
+        except MlflowException as e:
+            if "RESOURCE_DOES_NOT_EXIST" in str(e):
+                logger.info(f"Model {model_name} not found in registry")
+                return None
+            raise(e)
+
+        # If model exists, try to get the aliased version
+        try:
+            alias_mv = client.get_model_version_by_alias(model_name, alias)
+            return alias_mv
+        except MlflowException as e:
+            if f"alias {alias} not found" in str(e):
+                return None
+            raise(e)
     except Exception as e:
-        if f"alias {alias} not found" in str(e):
-            return None
+        logger.error(f"Unexpected error: {e!s}")
         raise(e)
-    return alias_mv
 
 if __name__=="__main__":
     client = MlflowClient(mlflow.get_tracking_uri())
@@ -22,9 +38,15 @@ if __name__=="__main__":
     if champ_mv is None:
         chall_mv = get_model_by_alias(client, alias="challenger")
         if chall_mv is None:
-            model_info = client.get_latest_versions(MODEL_NAME)[0]
-            logger.info("Did not found champion or challenger, promoting newest model to champion.")
-            client.set_registered_model_alias(MODEL_NAME, "champion", model_info.version)
+            try:
+                model_info = client.get_latest_versions(MODEL_NAME)[0]
+                logger.info("Did not find champion or challenger, promoting newest model to champion.")
+                client.set_registered_model_alias(MODEL_NAME, "champion", model_info.version)
+            except MlflowException as e:
+                if "RESOURCE_DOES_NOT_EXIST" in str(e):
+                    logger.info("No models found in registry. Please train a model first.")
+                    exit(0)
+                raise(e)
         else:
             logger.info("Found challenger model with no champion, promoting challenger to champion.")
             client.delete_registered_model_alias(MODEL_NAME, "challenger")
