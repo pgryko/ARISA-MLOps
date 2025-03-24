@@ -13,54 +13,30 @@ on:
   workflow_dispatch:
 
 jobs:
-  preprocess:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with: 
-          python-version: "3.11"
-      - name: Install dependencies
-        run: make requirements
-      - name: Create kaggle directory
-        env: 
-          KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
-        run: |
-          mkdir -p $HOME/.config/kaggle
-          echo "$KAGGLE_KEY" > $HOME/.config/kaggle/kaggle.json
-          chmod 600 $HOME/.config/kaggle/kaggle.json
-      - name: Run preprocessing
-        run: make preprocess
-      - name: Upload preprocessed data
-        uses: actions/upload-artifact@v4
-        with:
-          name: processed-data
-          path: data/processed
-
   train:
     runs-on: ubuntu-latest
-    needs: preprocess
     permissions:
       contents: write
-      actions: write
+      pull-requests: write
     steps: 
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Fetch all history for all branches and tags
-          
-      - name: Download processed data
-        uses: actions/download-artifact@v4
-        with:
-          name: processed-data
-          path: data/processed
+          fetch-depth: 0
           
       - name: Set up Python
         uses: actions/setup-python@v4
         with: 
           python-version: "3.11"
+
+      - name: Install GitHub CLI
+        run: |
+          type -p curl >/dev/null || (sudo apt update && sudo apt install curl -y)
+          curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg \
+          && sudo chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg \
+          && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
+          && sudo apt update \
+          && sudo apt install gh -y
           
       - name: Install dependencies
         run: make requirements
@@ -73,26 +49,48 @@ jobs:
       - name: Run training
         run: make train
         
-      - name: Commit MLflow artifacts
+      - name: Create Pull Request
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          # Create a new branch
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           
-          # Add all changed files
+          # Create new branch with timestamp
+          BRANCH_NAME="model-update-$(date +%Y%m%d-%H%M%S)"
+          git checkout -b $BRANCH_NAME
+          
+          # Add and commit changes
           git add .mlflow/artifacts/
           git add .mlflow/db/
           git add models/
           git add reports/figures/
           git add data/processed/
           
-          # Create commit with changes
           git commit -m "Update ML artifacts [skip ci]" || echo "No changes to commit"
           
-          # Pull any changes from remote
-          git pull --rebase origin main
+          # Push new branch
+          git push origin $BRANCH_NAME
           
-          # Push changes
-          git push origin main
+          # Create PR using GitHub CLI
+          gh pr create \
+            --title "Update ML artifacts [Automated]" \
+            --body "Automated PR to update ML artifacts from training workflow" \
+            --base main \
+            --head $BRANCH_NAME \
+            --label "automated-pr" \
+            --label "model-update"
+            
+      - name: Auto-merge Pull Request
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Get the PR number from the previous step
+          PR_NUMBER=$(gh pr list --head $BRANCH_NAME --json number -q '.[0].number')
+          
+          # Enable auto-merge
+          gh pr merge $PR_NUMBER --auto --merge
         
       - name: Trigger Predict Workflow
         if: success()
