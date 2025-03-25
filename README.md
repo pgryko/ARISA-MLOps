@@ -1,173 +1,147 @@
-# ARISA-MLOps
+# ARISA-MLOps: Titanic Survival Prediction
 
-# Formative Assignment: Reproducible ML (Lessons 3+4)
+A production-ready MLOps implementation of the Titanic survival prediction model, demonstrating modern ML engineering practices including automated training, prediction pipelines, and model versioning.
 
-**Due Date:** March 29, 2025 11:59 PM
+## Project Overview
 
-## Instructions
-- Remember to ask in chat (teachers, other students, or ChatGPT) if you get stuck!
-- Lessons are recorded and transcribed for your reference to review covered topics
+This project implements an end-to-end MLOps pipeline for the classic Titanic survival prediction problem, featuring:
+- Automated model retraining on data/code changes
+- Automated prediction pipeline
+- Model versioning and experiment tracking with MLflow
+- Cloud-based artifact and metadata storage (AWS S3 and RDS)
+- Champion/Challenger model deployment strategy
 
-## Assignment Overview
-You will replicate the state of our MLOps system reached at the end of lesson 04.
+## Architecture
 
-## Steps to Complete
-1. Fork the current state of https://github.com/clausagerskov/ARISA-MLOps, or create a new public repository and copy the code from the main branch
-2. Follow the instructions under Sessions 03 and 04 in the repo README.md to set up:
-   - Pipeline for retraining when train data/code changes
-   - Pipeline for producing predictions
-3. Ensure you have multiple successful runs of both pipelines in your repository
-4. Answer the reflective questions below
-5. Submit your repository link along with answers
-
-## Reflective Questions
-1. Why is MLFlow useful?
-2. What is the purpose of having automated pipelines in ML production environments? Why can't data scientists simply run notebooks for training and predictions?
-3. What are the differences between:
-   - A/B testing
-   - Green/Blue deployments  
-   - Canary deployments
-   - Challenger/Champion deployments
-4. Why do we host artifacts in AWS S3 and metadata in RDS?
-5. What security concerns and challenges arise when using secrets and API keys to authenticate GitHub Actions workflows?
-6. What was your biggest challenge in completing this assignment?
+The system consists of two main pipelines:
+1. **Training Pipeline**: Automatically retrains the model when training data or code changes
+2. **Prediction Pipeline**: Generates new predictions when a model is updated
 
 
-## Sessions 01 and 02
-### Prerequisites  
-Install python 3.11 with py manager on your local machine.  
-Install Visual Studio Code on your local machine.  
-Create a kaggle account and create a kaggle api key kaggle.json file.  
-Move the kaggle.json to   
-C:\Users\USERNAME\\.kaggle folder for windows,  
-/home/username/.config/kaggle folder for mac or linux.  
-### Local
-Fork repo to your own github account.  
-Clone forked repo to your local machine.  
-Open VS Code and open the repo directory.  
-In the VS Code terminal run the following to create a new python virtual environment:  
+## Project Structure
 ```
+├── ARISA_DSML/          # Main package directory
+│   ├── config.py        # Configuration and constants
+│   ├── predict.py       # Prediction pipeline
+│   ├── preproc.py      # Data preprocessing
+│   ├── resolve.py      # Model resolution logic
+│   └── train.py        # Training pipeline
+├── data/               # Data directory
+├── .mlflow/            # MLflow tracking
+├── models/             # Model artifacts
+├── notebooks/          # Development notebooks
+└── reports/           # Generated analysis
+```
+
+## Setup
+
+### Prerequisites
+- Python 3.11
+- AWS Account with S3 and RDS access
+- Kaggle account and API key
+
+### Local Development
+1. Clone the repository:
+```bash
+git clone <your-repo-url>
+cd ARISA-MLOps
+```
+
+2. Create and activate virtual environment:
+```bash
 py -3.11 -m venv .venv
-```
-windows
-```
+# Windows
 .\.venv\Scripts\activate
-```
-mac or linux  
-```
+# Mac/Linux
 source .venv/bin/activate
 ```
-and then open up notebook 02 and attempt to run the cells.  
 
-### Github Codespaces  
-Fork repo to your own github account.  
-Click the code button, select codespaces tab click create codespace on main.  
-Optionally, after the codespace has finished loading click the blue button on the bottom left and select open in visual studio code.  
-Make sure to turn off the codepace when done, you have a limited amount of free runtime hours.  
-
-## Sessions 03 and 04
-The focus of code introduced in sessions 03 and 04 (March 8th and 9th) is moving from the codebase developed in sessions 01 and 02,  
-namely moving from a codebase prepared for MLOps, to actually doing reproducible ML.  
-We will be implementing the experimentation and train/predict pipelines in the below diagram:
-![image](https://github.com/user-attachments/assets/f11539b6-9bcc-4a04-b89f-97e6e7383bf2)
-(source https://ml-ops.org/content/mlops-principles)
-More specifically, we will be hosting a MLflow tracking server in a Codespace (but AWS EC2 could also be an option),
-and running the two pipelines in GitHub Actions Workflows, see architecture below:
-![arisa-githut-architecture](https://github.com/user-attachments/assets/fb13f63b-e821-4b9b-869a-e3f2ea431a9b)
-![arisa resolve](https://github.com/user-attachments/assets/76eedd72-0326-4d80-879c-9f6761349032)
-### Getting the architecture up and running
-Since we will be using AWS S3 and RDS to host the MLflow artifact store and metadata store respectively we will neeed to set these up in AWS.  
-Set up a new AWS account if you don't have one already (and enable MFA!)
-#### Metadata store database
-Navigate to RDS  
-Create a new database using "Standard create"  
-Choose PostgreSQL engine  
-Select Free tier as Template  
-Change DB instance identifier to something like mlflow-db  
-Leave Master username as the default  
-Select Self managed for Credentials management and input a random password (keep the password for later)  
-Under connectivity select Yes for Publics access and create new VPC security group (call it something like mflow-db-sg) and note the Database port under Additional configuration (should be 5432)  
-Near the bottom under the second Additional configuration under Database options write mlflow_db under Initial database name  
-At the very bottom click Create database  
-Once the database has finished creating click on the instance and copy the endpoint  
-Click the VPC security group and make sure that the inbound rules look like the following:  
-![image](https://github.com/user-attachments/assets/99978aa4-5f0b-49de-a453-f5626956b23d)  
-#### Artifact store
-Navigate to S3  
-Create bucket  
-Leave all settings at their default values  
-Give a globally unique name to the bucket and keep it for later  
-Create bucket  
-#### Authenticate
-Navigate to IAM  
-Click Users  
-Create user  
-Enter a User name, something like github-actions-runner  
-Next  
-Under Set permissions choose Attach policies directly  
-Under Permissions policies add AmazonS3FullAccess  
-Next  
-Review and create -> Create user  
-Click the newly created user  
-Go to Security credentials  
-Click Create access key  
-Choose Application running outside AWS  
-Next  
-Optionally add a description  
-Click Create access key  
-Copy both the Access key and Secret access key (do not share these with anyone or commit them to any repo!)  
-#### GitHub Secrets setup
-You should now have the following pieces of information:  
- * Access key (from the github-actions-runner user security credentials)  
- * Secret access key (from the github-actions-runner user security credentials)  
- * MLflow database name (should be mlflow_db if you followed the above instructions)  
- * MLflow database endpoint (from RDS)  
- * MLflow database username (default is postgres)  
- * MLflow database password (the random password you chose when setting up the RDS database)
- * MLflow database port (should be 5432)  
- * Kaggle key (contents of kaggle.json, from earlier sessions or create a new one)
- * S3 bucket name
-
-Add all of these to your repository's Codespaces secrets with the names:  
- * AWS_ACCESS_KEY_ID
- * AWS_SECRET_ACCESS_KEY
- * MLFLOWDB
- * MLFLOWDBENDPOINT
- * MLFLOWDBUSERNAME
- * MLFLOWDBPASS
- * MLFLOWDBPORT
- * KAGGLE_KEY
- * ARTIFACT_BUCKET
-
-Also add the following to your repository's Actions secrets:
- * AWS_ACCESS_KEY_ID
- * AWS_SECRET_ACCESS_KEY
- * KAGGLE_KEY
- * ARTIFACT_BUCKET
-
-#### Code and codespaces setup 
-Now make sure your version/fork of the repo is up to date with the current state of the master branch of this repo  
-Especially make sure that the following commands are part of your .devcontainer.json:
+3. Install dependencies:
+```bash
+make requirements
 ```
-	"postCreateCommand": "pip install --no-cache-dir mlflow==2.12.1 psycopg2",
-	"postStartCommand": "mlflow ui --backend-store-uri postgresql://${MLFLOWDBUSERNAME}:${MLFLOWDBPASS}@${MLFLOWDBENDPOINT}:${MLFLOWDBPORT}/${MLFLOWDB} --default-artifact-root s3://${ARTIFACT_BUCKET}/models --host 0.0.0.0 --port 5000",
+
+4. Set up Kaggle authentication:
+- Place your `kaggle.json` in:
+  - Windows: `C:\Users\USERNAME\.kaggle`
+  - Mac/Linux: `/home/username/.config/kaggle`
+
+### Cloud Infrastructure Setup
+
+1. **AWS RDS (Metadata Store)**:
+   - Create PostgreSQL database
+   - Configure public access
+   - Note connection details
+
+2. **AWS S3 (Artifact Store)**:
+   - Create bucket
+   - Configure appropriate access
+
+3. **GitHub Secrets**:
+   Add the following secrets to your repository:
+   - `KAGGLE_KEY`
+   - `WORKFLOW_PAT`
+
+## Usage
+
+### Training Pipeline
+The training pipeline automatically triggers when:
+- Training data changes
+- Model code changes
+- Manual workflow dispatch
+
+```bash
+make train
 ```
-as well as remoteEnv containing the Codespaces secrets (see main branch version)  
-Then start a new codespace with the update version of the code  
-Once connected to the codespace click the ports tabs and copy the codespace address and make sure to change visibility to public.  
-![image](https://github.com/user-attachments/assets/7aa26ee2-b5e2-4501-a7e8-bc0975fff330)  
-Back in actions secrets add a new secret containing the address with name MLFLOW_TRACKING_URI  
-When MLFlow UI has started run the model training a couple of times and see the experiments update in the UI  
-Freeze requirements using `pip freeze --local > requirements.txt` and make sure psycopg2 boto3 and kaggle appears in the requirements.txt file, if not install them manually  
-Finally make a change to the train.py code (can be as simple as a comment) and commit (directly to main is fine for this task)  
-A retrain pipeline should be started and hopefully success in the actions tab  
-After the retrain pipeline finished it should trigger the predict on model change pipeline  
-See how the models tab in the MLFlow UI has changed  
-Change something else in train.py, commit to main and see how the models page update again after both pipelines have run.
 
-**If the mlflow ui does not successfully start click the blue button at the bottom left of the codespaces view and click view creation log for any errors, and if everything else fails try and delete and recreate the RDS database.**
+### Prediction Pipeline
+The prediction pipeline runs when:
+- A new model is trained
+- Prediction code changes
+- Manual workflow dispatch
 
+```bash
+make predict
+```
 
+### Local Development
+For local development and testing:
+```bash
+# Download and preprocess data
+make preprocess
 
+# Train model
+make train
 
+# Generate predictions
+make predict
+```
 
+## MLflow Tracking
+
+Access the MLflow UI through your configured tracking server to:
+- Compare experiments
+- View model metrics
+- Access model artifacts
+- Monitor model versions
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
+
+## License
+
+MIT
+
+## Contact
+
+Piotr Gryko
+
+## Acknowledgments
+
+- Original Titanic dataset from Kaggle
+- MLOps architecture inspired by [ml-ops.org](https://ml-ops.org/)
