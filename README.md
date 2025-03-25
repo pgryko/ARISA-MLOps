@@ -37,7 +37,6 @@ The system consists of two main pipelines:
 
 ### Prerequisites
 - Python 3.11
-- AWS Account with S3 and RDS access
 - Kaggle account and API key
 
 ### Local Development
