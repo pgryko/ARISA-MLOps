@@ -128,20 +128,15 @@ jobs:
           done
           exit 1
 
-      - name: Create Pull Request
-        if: success()
+      - name: Update ML artifacts
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.WORKFLOW_PAT }}
         run: |
           # Configure git
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           
-          # Create branch with timestamp
-          BRANCH_NAME="model-update-$(date +%Y%m%d-%H%M%S)"
-          git checkout -b $BRANCH_NAME
-          
-          # Add and commit changes
+          # Push directly to main
           git add .mlflow/artifacts/
           git add .mlflow/db/
           git add models/
@@ -150,17 +145,7 @@ jobs:
           
           if ! git diff --cached --quiet; then
             git commit -m "Update ML artifacts [skip ci]"
-            git push origin $BRANCH_NAME
-            
-            # Create PR using GitHub CLI
-            pr_url=$(gh pr create \
-              --title "Update ML artifacts [Automated]" \
-              --body "Automated PR to update ML artifacts from training workflow" \
-              --base main \
-              --head $BRANCH_NAME)
-            
-            # Merge PR immediately
-            gh pr merge $BRANCH_NAME --merge --delete-branch
+            git push origin main
           else
             echo "No changes to commit"
           fi
