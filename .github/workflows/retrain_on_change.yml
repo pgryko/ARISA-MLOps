@@ -169,7 +169,7 @@ jobs:
             https://api.github.com/repos/${{ github.repository }}/branches/main/protection \
             -d '{
               "required_status_checks": null,
-              "enforce_admins": true,
+              "enforce_admins": false,
               "required_pull_request_reviews": {
                 "required_approving_review_count": 1
               },
