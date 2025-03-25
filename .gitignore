@@ -6,11 +6,8 @@ kaggle.json
 __pycache__
 *.pyc
 .idea
-mlruns
-mlartifacts
 
 # Exclude SQLite database file
-# .mlflow/db/*.db
 # But keep the directory
 !.mlflow/db/.gitkeep
 
@@ -40,6 +37,7 @@ wheels/
 .mlflow/*
 !.mlflow/artifacts/
 !.mlflow/db/
+!mlruns/
 
 # Jupyter
 .ipynb_checkpoints
