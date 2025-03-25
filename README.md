@@ -8,7 +8,6 @@ This project implements an end-to-end MLOps pipeline for the classic Titanic sur
 - Automated model retraining on data/code changes
 - Automated prediction pipeline
 - Model versioning and experiment tracking with MLflow
-- Cloud-based artifact and metadata storage (AWS S3 and RDS)
 - Champion/Challenger model deployment strategy
 
 ## Architecture
